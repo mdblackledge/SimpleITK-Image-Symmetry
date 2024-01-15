@@ -1,7 +1,12 @@
+
 import SimpleITK as sitk
 import numpy as np
 from scipy.optimize import minimize
 from pywt import wavedecn
+from scipy.misc import face
+import matplotlib.pyplot as pl
+
+
 
 class ImageSymmetry(object):
 
@@ -100,17 +105,39 @@ class ImageSymmetry(object):
 
 if __name__ == "__main__":
 
-        from scipy.misc import face
-        import matplotlib.pyplot as pl
+
 
         image_sym = ImageSymmetry()
 
-        # Create a mock image with symmetry
+        signal_image = sitk.ReadImage('/Users/acanditoOld/Desktop/WBDWI_Cohorts/SE_Cohort_py_ver101/Pre-Treatment/Se090/Signal_image-py.mha')
+        arr_signal_image = sitk.GetArrayFromImage(signal_image)
+        arr_2d_signal_image = arr_signal_image[40,...]
+
+        axial_image = sitk.GetImageFromArray(arr_2d_signal_image)
+        axial_image.SetOrigin((signal_image.GetOrigin()[0], signal_image.GetOrigin()[1]))
+        axial_image.SetSpacing((signal_image.GetSpacing()[0], signal_image.GetSpacing()[1]))
+        sitk.WriteImage(axial_image, '/Users/acanditoOld/Desktop/axial_image.mha')
+
+        plane = image_sym.normalise_plane([160., 1., 130.])
+        print('normalised plane:', plane)
+
+        trans = image_sym.reflection_transform(plane)
+
+        im_reflected = sitk.Resample(axial_image, axial_image, trans, sitk.sitkLinear, 0.0, axial_image.GetPixelID())
+        sitk.WriteImage(im_reflected, '/Users/acanditoOld/Desktop/reflected_axial_image.mha')
+
+        raise
+
+        ########################################################################
+        ############ Create a mock image with symmetry
+        image_sym = ImageSymmetry()
+
         arr = face(gray=True).astype('float')
         arr = np.pad(arr, ((arr.shape[0], arr.shape[0]), (arr.shape[1], arr.shape[1])), 'constant', constant_values=0.0)
 
         im = sitk.GetImageFromArray(arr)
         im.SetOrigin((-arr.shape[1]/2, -arr.shape[0]/2))
+
         plane = image_sym.normalise_plane([1.0, 0.5, 100])
         trans = image_sym.reflection_transform(plane)
         im_reflected = sitk.Resample(im, im, trans, sitk.sitkLinear, 0.0, im.GetPixelID())
